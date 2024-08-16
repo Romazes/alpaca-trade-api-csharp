@@ -1,4 +1,4 @@
-﻿namespace Alpaca.Markets;
+namespace Alpaca.Markets;
 
 internal sealed class AlpacaOptionsStreamingClient :
     DataStreamingClientBase<AlpacaOptionsStreamingClientConfiguration>,
