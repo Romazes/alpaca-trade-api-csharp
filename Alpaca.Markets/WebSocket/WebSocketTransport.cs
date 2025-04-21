@@ -41,6 +41,8 @@ internal sealed class WebSocketsTransport(
 
     private Task _running = Task.CompletedTask;
 
+    private CancellationTokenSource _cancellationTokenSource = new ();
+
     private SpinLock _sendLock = new(false);
 
     private volatile Boolean _aborted;
@@ -170,74 +172,89 @@ internal sealed class WebSocketsTransport(
         }
     }
 
-    public void Dispose() => _webSocket?.Dispose();
+    public void Dispose()
+    {
+        _cancellationTokenSource?.Dispose();
+        _webSocket?.Dispose();
+    }
 
     private async Task processSocketAsync(
         IWebSocket socket,
         IDuplexPipe application,
         IDuplexPipe transport)
     {
-        try
+        var keepRunning = default(bool);
+        await Task.Factory.StartNew(async () =>
         {
-            using (socket)
+            do
             {
-                // Begin sending and receiving.
-                var receiving = startReceiving(socket, application, transport);
-                var sending = startSending(socket, application);
-
-                // Wait for send or receive to complete
-                var trigger = await Task.WhenAny(receiving, sending)
-                    .ConfigureAwait(false);
-
-                if (trigger == receiving)
+                try
                 {
-                    // We're waiting for the application to finish and there are 2 things it could be doing
-                    // 1. Waiting for application data
-                    // 2. Waiting for a websocket send to complete
-
-                    // Cancel the application so that ReadAsync yields
-                    application.Input.CancelPendingRead();
-
-                    using var delayCts = new CancellationTokenSource();
-
-                    var resultTask = await Task.WhenAny(sending,
-                            Task.Delay(Timeout.InfiniteTimeSpan, delayCts.Token))
-                        .ConfigureAwait(false);
-
-                    if (resultTask != sending)
+                    using (socket)
                     {
-                        _aborted = true;
+                        // Begin sending and receiving.
+                        var receiving = startReceiving(socket, application, transport);
+                        var sending = startSending(socket, application);
 
-                        // Abort the websocket if we're stuck in a pending send to the client
-                        socket.Abort();
-                    }
-                    else
-                    {
-                        // Cancel the timeout
-                        delayCts.Cancel();
+                        // Wait for send or receive to complete
+                        var trigger = await Task.WhenAny(receiving, sending)
+                            .ConfigureAwait(false);
+
+                        if (trigger == receiving)
+                        {
+                            // We're waiting for the application to finish and there are 2 things it could be doing
+                            // 1. Waiting for application data
+                            // 2. Waiting for a websocket send to complete
+
+                            // Cancel the application so that ReadAsync yields
+                            application.Input.CancelPendingRead();
+
+                            using var delayCts = new CancellationTokenSource();
+
+                            var resultTask = await Task.WhenAny(sending,
+                                    Task.Delay(Timeout.InfiniteTimeSpan, delayCts.Token))
+                                .ConfigureAwait(false);
+
+                            if (resultTask != sending)
+                            {
+                                _aborted = true;
+
+                                // Abort the websocket if we're stuck in a pending send to the client
+                                socket.Abort();
+                            }
+                            else
+                            {
+                                // Cancel the timeout
+                                delayCts.Cancel();
+                            }
+                        }
+                        else
+                        {
+                            // We're waiting on the websocket to close and there are 2 things it could be doing
+                            // 1. Waiting for websocket data
+                            // 2. Waiting on a flush to complete (back pressure being applied)
+                            _aborted = true;
+
+                            // Abort the websocket if we're stuck in a pending receive from the client
+                            socket.Abort();
+
+                            // Cancel any pending flush so that we can quit
+                            application.Output.CancelPendingFlush();
+                        }
+
+                        Closed?.Invoke();
+                        // Gracefully exit the loop after successful completion
+                        keepRunning = false;
                     }
                 }
-                else
+                catch (Exception exception)
                 {
-                    // We're waiting on the websocket to close and there are 2 things it could be doing
-                    // 1. Waiting for websocket data
-                    // 2. Waiting on a flush to complete (back pressure being applied)
-                    _aborted = true;
-
-                    // Abort the websocket if we're stuck in a pending receive from the client
-                    socket.Abort();
-
-                    // Cancel any pending flush so that we can quit
-                    application.Output.CancelPendingFlush();
+                    Error?.Invoke(exception);
+                    // Continue the loop after handling the error
+                    keepRunning = true;
                 }
-
-                Closed?.Invoke();
-            }
-        }
-        catch (Exception exception)
-        {
-            Error?.Invoke(exception);
-        }
+            } while (keepRunning && !_cancellationTokenSource.Token.WaitHandle.WaitOne(TimeSpan.FromSeconds(10)));
+        }, _cancellationTokenSource.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default).ConfigureAwait(false);
     }
 
     [SuppressMessage(
