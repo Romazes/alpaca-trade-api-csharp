@@ -69,17 +69,7 @@ internal sealed class ClientWebSocketWrapper : IWebSocket
         WebSocketCloseStatus closeStatus) =>
         _client.CloseOutputAsync(closeStatus, String.Empty, CancellationToken.None);
 
-    public void Abort()
-    {
-        try
-        {
-            _client.Abort();
-        }
-        catch (Exception)
-        {
-            throw;
-        }
-    }
+    public void Abort() => _client.Abort();
 
     public WebSocketState State => _client.State;
 
