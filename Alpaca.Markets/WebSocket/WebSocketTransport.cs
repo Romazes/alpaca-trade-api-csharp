@@ -174,8 +174,8 @@ internal sealed class WebSocketsTransport(
 
     public void Dispose()
     {
-        _cancellationTokenSource?.Dispose();
         _cancellationTokenSource?.Cancel();
+        _cancellationTokenSource?.Dispose();
         _webSocket?.Dispose();
     }
 
@@ -221,7 +221,8 @@ internal sealed class WebSocketsTransport(
                             if (resultTask != sending)
                             {
                                 _aborted = true;
-
+                                Error?.Invoke(new TimeoutException("The operation timed out while attempting to send data to the client. " +
+                                    "The connection has been aborted to prevent hanging."));
                                 // Abort the websocket if we're stuck in a pending send to the client
                                 socket.Abort();
                             }
