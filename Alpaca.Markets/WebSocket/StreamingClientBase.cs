@@ -2,7 +2,6 @@
 using MessagePack;
 using MessagePack.Resolvers;
 using Newtonsoft.Json.Linq;
-using QuantConnect.Logging;
 
 namespace Alpaca.Markets;
 
@@ -155,7 +154,6 @@ internal abstract class StreamingClientBase<TConfiguration> : IStreamingClient
         }
         catch (Exception exception)
         {
-            Log.Error($"{nameof(StreamingClientBase<TConfiguration>)}.{nameof(HandleMessage)}.exception: {exception}");
             HandleError(exception);
         }
     }

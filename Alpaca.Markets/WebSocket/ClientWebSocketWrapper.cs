@@ -14,25 +14,8 @@ internal sealed class ClientWebSocketWrapper : IWebSocket
     public void Dispose() => _client.Dispose();
 
     public Task ConnectAsync(
-        Uri uri, CancellationToken cancellationToken)
-    {
-        
-        // https://learn.microsoft.com/en-us/dotnet/api/system.net.websockets.clientwebsocketoptions.keepalivetimeout?view=net-9.0
-        // https://github.com/dotnet/runtime/blob/d9c4c3e73dcf09435a3cc1cabb23584c9f24b504/src/libraries/System.Net.WebSockets/src/System/Net/WebSockets/WebSocketCreationOptions.cs#L63
-        // <see cref="Timeout.InfiniteTimeSpan"/> to disable waiting for peer's response, and use an unsolicited PONG as a Keep-Alive heartbeat instead.
-        // The default is <see cref="Timeout.InfiniteTimeSpan"/>.
-         _client.Options.KeepAliveTimeout = TimeSpan.FromSeconds(10);
-         QuantConnect.Logging.Log.Trace($"********** KeepAliveTimeout: {_client.Options.KeepAliveTimeout} sec");
-
-        // https://learn.microsoft.com/en-us/dotnet/api/system.net.websockets.clientwebsocketoptions.keepaliveinterval?view=net-9.0
-        // https://github.com/dotnet/runtime/blob/d9c4c3e73dcf09435a3cc1cabb23584c9f24b504/src/libraries/System.Net.WebSockets/src/System/Net/WebSockets/WebSocketCreationOptions.cs#L44
-        // If <see cref="WebSocketCreationOptions.KeepAliveTimeout"/> is set, then PING messages are sent and peer's PONG responses are expected, otherwise,
-        // unsolicited PONG messages are used as a keep-alive heartbeat.
-        // The default is <see cref="TimeSpan.Zero"/>.
-        _client.Options.KeepAliveInterval = TimeSpan.FromSeconds(5);
-        QuantConnect.Logging.Log.Trace($"********** KeepAliveInterval: {_client.Options.KeepAliveInterval} sec");
-        return _client.ConnectAsync(uri, cancellationToken);
-    }
+        Uri uri, CancellationToken cancellationToken) =>
+        _client.ConnectAsync(uri, cancellationToken);
 
     public void SetContentType(string contentType)
     {
@@ -78,18 +61,7 @@ internal sealed class ClientWebSocketWrapper : IWebSocket
         WebSocketCloseStatus closeStatus) =>
         _client.CloseOutputAsync(closeStatus, String.Empty, CancellationToken.None);
 
-    public void Abort()
-    {
-        try
-        {
-            _client.Abort();
-        }
-        catch (Exception exception)
-        {
-            QuantConnect.Logging.Log.Error($"{nameof(ClientWebSocketWrapper)}.{nameof(Abort)}.exception: {exception.Message}");
-            throw;
-        }
-    }
+    public void Abort() => _client.Abort();
 
     public WebSocketState State => _client.State;
 
