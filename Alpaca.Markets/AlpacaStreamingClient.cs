@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json.Linq;
+using QuantConnect.Logging;
 
 namespace Alpaca.Markets;
 
@@ -63,11 +64,13 @@ internal sealed class AlpacaStreamingClient :
             }
             else
             {
+                Log.Trace($"{nameof(AlpacaStreamingClient)}.{nameof(OnMessageReceived)}.payload: {payload.ToString(Formatting.None)}");
                 HandleMessage(_handlers, messageType.ToString(), payload);
             }
         }
         catch (Exception exception)
         {
+            Log.Error($"{nameof(AlpacaStreamingClient)}.{nameof(OnMessageReceived)}.exception: {exception}");
             HandleError(exception);
         }
     }

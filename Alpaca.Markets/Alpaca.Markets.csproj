@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net6.0</TargetFrameworks>
+    <TargetFrameworks>net9.0</TargetFrameworks>
     <AssemblyOriginatorKeyFile>..\Alpaca.Markets.snk</AssemblyOriginatorKeyFile>
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
@@ -124,6 +124,7 @@
 
   <ItemGroup>
     <PackageReference Include="MessagePack" Version="2.5.172" PrivateAssets="compile;contentfiles;build;analyzers" />
+    <PackageReference Include="QuantConnect.Logging" Version="2.5.17038" />
     <PackageReference Include="System.Threading.Channels" Version="8.0.0" PrivateAssets="compile;contentfiles;build;analyzers" />
     <PackageReference Include="System.IO.Pipelines" Version="8.0.0" PrivateAssets="compile;contentfiles;build;analyzers" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" PrivateAssets="compile;contentfiles;build;analyzers" />
@@ -136,7 +137,7 @@
     <Reference Include="System.Net.Http" />
   </ItemGroup>
 
-  <ItemGroup Condition="!$(TargetFramework.StartsWith('net6'))">
+  <ItemGroup Condition="!$(TargetFramework.StartsWith('net9'))">
     <PackageReference Include="Portable.System.DateTimeOnly" Version="8.0.1" PrivateAssets="compile;contentfiles;build;analyzers" />
   </ItemGroup>
 
