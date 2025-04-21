@@ -41,7 +41,7 @@ internal sealed class WebSocketsTransport(
 
     private Task _running = Task.CompletedTask;
 
-    private CancellationTokenSource _cancellationTokenSource = new ();
+    private CancellationTokenSource _cancellationTokenSource;
 
     private SpinLock _sendLock = new(false);
 
@@ -175,16 +175,19 @@ internal sealed class WebSocketsTransport(
     public void Dispose()
     {
         _cancellationTokenSource?.Dispose();
+        _cancellationTokenSource?.Cancel();
         _webSocket?.Dispose();
     }
 
-    private async Task processSocketAsync(
+    private Task processSocketAsync(
         IWebSocket socket,
         IDuplexPipe application,
         IDuplexPipe transport)
     {
+        _cancellationTokenSource?.Dispose();
+        _cancellationTokenSource = new();
         var keepRunning = default(bool);
-        await Task.Factory.StartNew(async () =>
+        return Task.Factory.StartNew(async () =>
         {
             do
             {
@@ -212,7 +215,7 @@ internal sealed class WebSocketsTransport(
                             using var delayCts = new CancellationTokenSource();
 
                             var resultTask = await Task.WhenAny(sending,
-                                    Task.Delay(Timeout.InfiniteTimeSpan, delayCts.Token))
+                                    Task.Delay(TimeSpan.FromSeconds(30), delayCts.Token))
                                 .ConfigureAwait(false);
 
                             if (resultTask != sending)
@@ -254,7 +257,7 @@ internal sealed class WebSocketsTransport(
                     keepRunning = true;
                 }
             } while (keepRunning && !_cancellationTokenSource.Token.WaitHandle.WaitOne(TimeSpan.FromSeconds(10)));
-        }, _cancellationTokenSource.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default).ConfigureAwait(false);
+        }, _cancellationTokenSource.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
     }
 
     [SuppressMessage(
