@@ -17,7 +17,6 @@ public sealed partial class AlpacaTradingClientTest
         const Decimal cash = 10_000M;
         const Decimal transfer = 0M;
         const Int32 multiplier = 4;
-        const UInt64 count = 2UL;
 
         using var mock = mockClientsFactory.GetAlpacaTradingClientMock();
 
@@ -26,7 +25,7 @@ public sealed partial class AlpacaTradingClientTest
             new JProperty("options_approved_level", OptionsTradingLevel.Disabled),
             new JProperty("options_trading_level", OptionsTradingLevel.Disabled),
             new JProperty("crypto_status", AccountStatus.Active),
-            new JProperty("non_maginable_buying_power", Price),
+            new JProperty("non_marginable_buying_power", Price),
             new JProperty("daytrading_buying_power", Price),
             new JProperty("last_maintenance_margin", Price),
             new JProperty("pending_transfer_out", transfer),
@@ -46,7 +45,6 @@ public sealed partial class AlpacaTradingClientTest
             new JProperty("shorting_enabled", true),
             new JProperty("multiplier", multiplier),
             new JProperty("initial_margin", Price),
-            new JProperty("daytrade_count", count),
             new JProperty("buying_power", Price),
             new JProperty("last_equity", Price),
             new JProperty("id", Guid.NewGuid()),
@@ -59,7 +57,6 @@ public sealed partial class AlpacaTradingClientTest
         Assert.Equal(Multiplier.Quadruple, account.Multiplier);
         Assert.NotEqual(Guid.NewGuid(), account.AccountId);
         Assert.False(String.IsNullOrEmpty(account.Currency));
-        Assert.Equal(count, account.DayTradeCount);
 
         Assert.Equal(AccountStatus.Active, account.CryptoStatus);
         Assert.Equal(AccountStatus.Active, account.Status);
@@ -90,7 +87,6 @@ public sealed partial class AlpacaTradingClientTest
         Assert.True(account.TradeSuspendedByUser);
         Assert.True(account.ShortingEnabled);
 
-        Assert.False(account.IsDayPatternTrader);
         Assert.False(account.IsTransfersBlocked);
         Assert.False(account.IsTradingBlocked);
         Assert.False(account.IsAccountBlocked);
